@@ -46,4 +46,9 @@ interface GuiGatekeeperInterface
         AccessTypeEnum $type,
         AccessLevelEnum $level,
     ): bool;
+
+    /**
+     * Whether the user may administer, which demo mode never grants however high their level reads
+     */
+    public function mayAdminister(): bool;
 }

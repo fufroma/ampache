@@ -26,39 +26,35 @@ declare(strict_types=1);
 namespace Ampache\Gui\Preferences;
 
 use Ampache\Config\ConfigContainerInterface;
-use Ampache\Module\Authorization\AccessLevelEnum;
-use Ampache\Module\Authorization\AccessTypeEnum;
 use Ampache\Module\Authorization\GuiGatekeeperInterface;
-use Ampache\Module\Util\RequestParserInterface;
-use Ampache\Module\Util\UiInterface;
+use Ampache\Repository\Model\User;
 use Override;
 
 final readonly class PreferencesViewFactory implements PreferencesViewFactoryInterface
 {
     public function __construct(
-        private UiInterface $ui,
         private ConfigContainerInterface $configContainer,
-        private RequestParserInterface $requestParser,
+        private PreferenceCollector $collector,
+        private PreferenceInputRenderer $renderer,
     ) {}
 
     #[Override]
     public function create(
         GuiGatekeeperInterface $gatekeeper,
-        ?string $fullname,
-        array $preferences,
+        PreferenceSubject $subject,
+        User $operator,
+        string $tab,
     ): PreferencesView {
-        $isAdmin = $gatekeeper->mayAccess(AccessTypeEnum::INTERFACE, AccessLevelEnum::ADMIN);
+        $collected = $this->collector->collect($subject, $operator);
 
         return new PreferencesView(
-            $this->ui,
             $this->configContainer->getWebPath(),
-            (string) $fullname,
-            $preferences,
-            $this->requestParser->getFromRequest('tab'),
-            $this->requestParser->getFromRequest('action'),
-            $isAdmin ? (int) $this->requestParser->getFromRequest('user_id') : 0,
-            $isAdmin,
-            (bool) $this->configContainer->get('simple_user_mode')
+            $subject,
+            $collected[$tab] ?? [],
+            $tab,
+            $gatekeeper->mayAdminister(),
+            (bool) $this->configContainer->get('simple_user_mode'),
+            $this->renderer,
         );
     }
 }

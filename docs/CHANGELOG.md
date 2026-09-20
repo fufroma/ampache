@@ -6,6 +6,19 @@
 
 ### Added (8.2.0)
 
+* Database 810016
+  * Corrected the `bool` type on `home_recently_played_all` and `show_wrapped`
+* Preferences
+  * One page for your own preferences, the server's, and an admin editing another account
+  * The shipped default and the server value beside each preference, with one-click restore
+  * Inline help on ~130 preferences, with links to the documentation
+  * A filter box, plus filters for "differs from default" and "unsaved"
+  * A section jump list, and a catch-all section for preferences that belong to none
+  * Warnings when another preference, or a config setting, silently cancels the one being set
+  * A confirmation listing every change before it is written
+  * `Export all preferences`, a JSON download of the whole configuration
+  * Plugins can explain their own preferences through `PluginPreferenceHelpInterface`
+  * The Update button stays inert until something on the page actually changed
 * Database 810015
   * Added `musicbrainz_server` and `musicbrainz_throttle` preferences to support custom MusicBrainz mirrors and configurable request throttling
   * Added `jellyfin_backend_enable` preference
@@ -25,6 +38,11 @@
 
 ### Changed (8.2.0)
 
+* Preferences
+  * The confirmation names which changes the per-row `Apply to All` writes into every existing account
+  * Access levels are read from `Preference::DEFAULTS`, correcting nine that had drifted
+  * Resetting levels to default now also covers the 28 preferences the old list left out
+  * `admin/users.php?action=show_preferences` renders the shared preferences screen
 * Updated Seafile SDK to `dev-master`
 * Updated Composer and NPM dependencies
 * `wanted_types` now includes `single` and `ep` by default
@@ -32,8 +50,26 @@
 * Grid action icons now display in the bottom-right corner
 * Artist Songs now loads via AJAX within the artist page. Legacy URLs redirect to the new tab
 
+### Removed (8.2.0)
+
+* `preferences.php?action=user`, which required admin but only ever showed your own preferences
+* `Ui::createPreferenceInput()` and `Ui::showPreferenceBox()`, replaced by a type-driven renderer
+* The `Preference::DEFAULT_LEVELS` constant, replaced by `Preference::defaultLevels()`
+
 ### Fixed (8.2.0)
 
+* Preferences
+  * The account tab could never be saved, every submit answering 403
+  * `api_force_version` did not offer version 8, so a resubmit silently reset it to 0
+  * `localplay_level` and `upload_access_level` did not offer the Guest level
+  * A preference written in one request was still read back stale in that same request
+  * The Last.fm and Libre.fm authorisation callback accepted a forged link
+  * Last.fm and Libre.fm session keys were shown in plain text and carried into exports
+  * Last.fm and Libre.fm could never be authorised a first time: the link was hidden, and the callback refused
+* Notifications displayed their own quotes, and were inserted as markup rather than as text
+* A `site_title` holding a closing script tag broke the page scripts
+* A stored `theme_name` reached `get_theme()` as a path segment without being confined to the themes directory
+* The slideshow armed itself without the Flickr plugin
 * Garbage collection incorrectly removed parent-only folders
 * Fixed missing Subsonic sub-folder listings
 * Fixed MariaDB error 1020 when using `innodb_snapshot_isolation`

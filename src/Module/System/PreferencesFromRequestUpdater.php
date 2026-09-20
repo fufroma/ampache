@@ -30,6 +30,7 @@ use Ampache\Module\Authorization\AccessLevelEnum;
 use Ampache\Module\Authorization\AccessTypeEnum;
 use Ampache\Module\Authorization\Check\PrivilegeCheckerInterface;
 use Ampache\Module\Playback\Stream;
+use Ampache\Repository\Model\User;
 use DateTimeZone;
 
 final readonly class PreferencesFromRequestUpdater implements PreferencesFromRequestUpdaterInterface
@@ -51,7 +52,7 @@ final readonly class PreferencesFromRequestUpdater implements PreferencesFromReq
         };
 
         // Get current keys
-        $sql = ($user_id == '-1')
+        $sql = ($user_id === User::INTERNAL_SYSTEM_USER_ID)
             ? "SELECT `id`, `name`, `category` FROM `preference`"
             : "SELECT `id`, `name`, `category` FROM `preference` WHERE `category` != 'system'";
 
@@ -122,11 +123,8 @@ final readonly class PreferencesFromRequestUpdater implements PreferencesFromReq
                     break;
             }
 
-            if (
-                str_ends_with($name, '_pass')
-                || str_ends_with($name, '_token')
-                || str_ends_with($name, '_key')
-            ) {
+            // `Preference` owns the suffix list, so a second copy here could not drift from the masking
+            if (Preference::isSecretName($name)) {
                 // The field always renders blank, so a blank submit means "leave the stored secret alone"
                 if ($value === '') {
                     unset($_REQUEST[$name]);
