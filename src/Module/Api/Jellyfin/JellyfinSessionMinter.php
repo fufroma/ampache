@@ -25,7 +25,6 @@ declare(strict_types=1);
 
 namespace Ampache\Module\Api\Jellyfin;
 
-use Ampache\Config\AmpConfig;
 use Ampache\Module\Database\DatabaseConnectionInterface;
 use Ampache\Module\System\Session;
 use Ampache\Repository\Model\User;
@@ -42,7 +41,10 @@ final class JellyfinSessionMinter
      */
     private const int SESSION_TTL_SECONDS = 10 * 365 * 24 * 60 * 60;
 
-    public function __construct(private readonly DatabaseConnectionInterface $databaseConnection) {}
+    public function __construct(
+        private readonly DatabaseConnectionInterface $databaseConnection,
+        private readonly JellyfinServerId $serverId,
+    ) {}
 
     /** @return array<string, mixed>|null null means `Session::create()` itself failed */
     public function mint(User $user): ?array
@@ -62,7 +64,7 @@ final class JellyfinSessionMinter
             [time() + self::SESSION_TTL_SECONDS, $token],
         );
 
-        $serverId = JellyfinServerId::derive((string) AmpConfig::get('secret_key', ''));
+        $serverId = $this->serverId->get();
 
         return [
             'User' => [
