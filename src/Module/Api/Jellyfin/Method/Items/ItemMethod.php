@@ -25,6 +25,7 @@ declare(strict_types=1);
 
 namespace Ampache\Module\Api\Jellyfin\Method\Items;
 
+use Ampache\Module\Api\Jellyfin\JellyfinCatalogAccess;
 use Ampache\Module\Api\Jellyfin\JellyfinId;
 use Ampache\Module\Api\Jellyfin\JellyfinItemMapper;
 use Ampache\Module\Api\Jellyfin\JellyfinResponse;
@@ -85,7 +86,9 @@ final class ItemMethod implements JellyfinMethodInterface
     {
         $album = new Album($id);
 
-        return $album->isNew() ? null : $this->mapper->mapAlbum($album, $user);
+        return ($album->isNew() || !JellyfinCatalogAccess::allows($album, $user))
+            ? null
+            : $this->mapper->mapAlbum($album, $user);
     }
 
     /** @return array<string, mixed>|null */
@@ -132,6 +135,8 @@ final class ItemMethod implements JellyfinMethodInterface
     {
         $song = new Song($id);
 
-        return $song->isNew() ? null : $this->mapper->mapSong($song, $user, ['MediaSources']);
+        return ($song->isNew() || !JellyfinCatalogAccess::allows($song, $user))
+            ? null
+            : $this->mapper->mapSong($song, $user, ['MediaSources']);
     }
 }

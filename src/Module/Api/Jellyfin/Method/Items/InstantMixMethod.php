@@ -25,6 +25,7 @@ declare(strict_types=1);
 
 namespace Ampache\Module\Api\Jellyfin\Method\Items;
 
+use Ampache\Module\Api\Jellyfin\JellyfinCatalogAccess;
 use Ampache\Module\Api\Jellyfin\JellyfinId;
 use Ampache\Module\Api\Jellyfin\JellyfinItemMapper;
 use Ampache\Module\Api\Jellyfin\JellyfinRequestBody;
@@ -67,7 +68,7 @@ final class InstantMixMethod implements JellyfinMethodInterface
 
         $songId = JellyfinId::decodeId($itemId);
         $seed   = ($songId !== null) ? new Song($songId) : null;
-        if ($seed === null || $seed->isNew()) {
+        if ($seed === null || $seed->isNew() || !JellyfinCatalogAccess::allows($seed, $user)) {
             return JellyfinResponse::notFound();
         }
 

@@ -26,6 +26,7 @@ declare(strict_types=1);
 namespace Ampache\Module\Api\Jellyfin\Method\Playback;
 
 use Ampache\Config\AmpConfig;
+use Ampache\Module\Api\Jellyfin\JellyfinCatalogAccess;
 use Ampache\Module\Api\Jellyfin\JellyfinId;
 use Ampache\Module\Api\Jellyfin\JellyfinRequestBody;
 use Ampache\Module\Api\Jellyfin\JellyfinResponse;
@@ -82,7 +83,13 @@ final class AudioStreamMethod implements JellyfinMethodInterface
         }
 
         $song = new Song((int) JellyfinId::decodeId($itemId));
-        if ($song->isNew() || !$song->enabled || $song->file === null || !is_readable($song->file)) {
+        if (
+            $song->isNew()
+            || !$song->enabled
+            || $song->file === null
+            || !is_readable($song->file)
+            || !JellyfinCatalogAccess::allows($song, $user)
+        ) {
             http_response_code(404);
 
             return JellyfinResponse::alreadySent();

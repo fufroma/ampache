@@ -25,6 +25,7 @@ declare(strict_types=1);
 
 namespace Ampache\Module\Api\Jellyfin\Method\Playback;
 
+use Ampache\Module\Api\Jellyfin\JellyfinCatalogAccess;
 use Ampache\Module\Api\Jellyfin\JellyfinId;
 use Ampache\Module\Api\Jellyfin\JellyfinRequestBody;
 use Ampache\Module\Api\Jellyfin\JellyfinResponse;
@@ -53,7 +54,7 @@ final class PlaybackInfoMethod implements JellyfinMethodInterface
         }
 
         $song = new Song((int) JellyfinId::decodeId($itemId));
-        if ($song->isNew()) {
+        if ($song->isNew() || !JellyfinCatalogAccess::allows($song, $user)) {
             return JellyfinResponse::notFound();
         }
 

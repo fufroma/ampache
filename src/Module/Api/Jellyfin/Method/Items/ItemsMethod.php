@@ -25,6 +25,7 @@ declare(strict_types=1);
 
 namespace Ampache\Module\Api\Jellyfin\Method\Items;
 
+use Ampache\Module\Api\Jellyfin\JellyfinCatalogAccess;
 use Ampache\Module\Api\Jellyfin\JellyfinId;
 use Ampache\Module\Api\Jellyfin\JellyfinItemMapper;
 use Ampache\Module\Api\Jellyfin\JellyfinRequestBody;
@@ -112,9 +113,13 @@ final class ItemsMethod implements JellyfinMethodInterface
         $albumIds = $this->albumRepository->getAlbumByArtist($artistId);
         $this->warmAlbums($albumIds);
 
+        // an artist carries no catalog of its own, so the filter is applied to the albums beneath it
         $albums = [];
         foreach ($albumIds as $albumId) {
-            $albums[] = $this->mapper->mapAlbum(new Album($albumId), $user);
+            $album = new Album($albumId);
+            if (JellyfinCatalogAccess::allows($album, $user)) {
+                $albums[] = $this->mapper->mapAlbum($album, $user);
+            }
         }
 
         return $albums;
@@ -373,7 +378,7 @@ final class ItemsMethod implements JellyfinMethodInterface
     private function songsForAlbum(int $albumId, User $user, array $fields): array
     {
         $album = new Album($albumId);
-        if ($album->isNew()) {
+        if ($album->isNew() || !JellyfinCatalogAccess::allows($album, $user)) {
             return [];
         }
 
