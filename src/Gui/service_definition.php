@@ -81,7 +81,6 @@ use Ampache\Gui\Preferences\PreferenceExporter;
 use Ampache\Gui\Preferences\PreferenceExporterInterface;
 use Ampache\Gui\Preferences\PreferenceHelpCatalog;
 use Ampache\Gui\Preferences\PreferenceInputRenderer;
-use Ampache\Gui\Preferences\PreferenceItemFactory;
 use Ampache\Gui\Preferences\PreferencePrerequisiteCatalog;
 use Ampache\Gui\Preferences\PreferencesViewFactory;
 use Ampache\Gui\Preferences\PreferencesViewFactoryInterface;
@@ -151,7 +150,6 @@ return [
     PreferenceChoiceProviderInterface::class => autowire(PreferenceChoiceProvider::class),
     PreferenceHelpCatalog::class => autowire(PreferenceHelpCatalog::class),
     PluginPreferenceHelp::class => autowire(PluginPreferenceHelp::class),
-    PreferenceItemFactory::class => autowire(PreferenceItemFactory::class),
     PreferencePrerequisiteCatalog::class => autowire(PreferencePrerequisiteCatalog::class),
     PreferenceCollector::class => autowire(PreferenceCollector::class),
     PreferenceExporterInterface::class => autowire(PreferenceExporter::class),

@@ -27,6 +27,7 @@ namespace Ampache\Gui\Preferences;
 
 use Ampache\Config\ConfigContainerInterface;
 use Ampache\Config\ConfigurationKeyEnum;
+use Ampache\Module\System\Preference;
 use Ampache\Repository\Model\User;
 use Ampache\Repository\UserRepositoryInterface;
 
@@ -37,7 +38,8 @@ final readonly class PreferenceCollector
 {
     public function __construct(
         private UserRepositoryInterface $userRepository,
-        private PreferenceItemFactory $itemFactory,
+        private PreferenceHelpCatalog $helpCatalog,
+        private PluginPreferenceHelp $pluginHelp,
         private PreferenceChoiceProviderInterface $choiceProvider,
         private PreferencePrerequisiteCatalog $prerequisites,
         private ConfigContainerInterface $configContainer,
@@ -63,7 +65,7 @@ final readonly class PreferenceCollector
 
         $collected = [];
         foreach ($rows as $row) {
-            $collected[$row['category']][] = $this->itemFactory->create(
+            $collected[$row['category']][] = $this->item(
                 $row,
                 $systemValues[$row['name']] ?? null,
                 $this->choiceProvider->find($row['name'], $subject, $held),
@@ -88,6 +90,39 @@ final readonly class PreferenceCollector
         }
 
         return $settings;
+    }
+
+    /**
+     * Turns one `UserRepository::getPreferenceRows()` row into the item a screen renders
+     *
+     * @param array{name: string, description: string, category: string, subcategory: ?string, type: string, level: int, value: mixed} $row
+     * @param ?string $systemValue the `user = -1` value, null when the subject is the system itself
+     * @param ?array<array-key, string> $choices from `PreferenceChoiceProvider`
+     */
+    private function item(array $row, ?string $systemValue, ?array $choices, bool $editable, ?string $warning): PreferenceItem
+    {
+        $name     = $row['name'];
+        $value    = (string) ($row['value'] ?? '');
+        $isSecret = Preference::isSecretName($name);
+
+        return new PreferenceItem(
+            name: $name,
+            description: $row['description'],
+            type: PreferenceType::fromDatabase($row['type']),
+            subcategory: ($row['subcategory'] === null || $row['subcategory'] === '') ? null : $row['subcategory'],
+            level: $row['level'],
+            // a secret is write-only: it must not reach a template that could echo it
+            value: $isSecret ? '' : $value,
+            shippedDefault: Preference::DEFAULTS[$name][0] ?? null,
+            systemValue: $isSecret ? null : $systemValue,
+            choices: $choices,
+            editable: $editable,
+            isSecret: $isSecret,
+            secretIsSet: $isSecret && $value !== '',
+            // a plugin knows its own settings better than the shipped catalogue does
+            help: $this->pluginHelp->find($row) ?? $this->helpCatalog->find($name),
+            warning: $warning,
+        );
     }
 
     /**

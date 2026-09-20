@@ -39,6 +39,27 @@ class PreferenceCollectorTest extends TestCase
     private PreferenceCollector $subject;
     private UserRepositoryInterface&MockObject $userRepository;
 
+    public function testAnEmptySubcategoryBecomesNull(): void
+    {
+        $row                = $this->row('popular_threshold', 'interface', type: 'integer', value: '25');
+        $row['subcategory'] = '';
+
+        $this->assertNull($this->itemOf($row)->subcategory);
+    }
+
+    public function testANullValueBecomesAnEmptyString(): void
+    {
+        $this->assertSame('', $this->itemOf($this->row('popular_threshold', 'interface', value: null))->value);
+    }
+
+    public function testAnUnsetSecretIsReportedAsUnset(): void
+    {
+        $item = $this->itemOf($this->row('daap_pass', 'system', type: 'string', value: ''));
+
+        $this->assertTrue($item->isSecret);
+        $this->assertFalse($item->secretIsSet);
+    }
+
     public function testAPreferenceAboveTheOperatorsLevelIsNotEditable(): void
     {
         $operator = $this->user(42, 25);
@@ -52,6 +73,16 @@ class PreferenceCollectorTest extends TestCase
 
         $this->assertTrue($collected['interface'][0]->editable);
         $this->assertFalse($collected['options'][0]->editable);
+    }
+
+    public function testASecretNeverCarriesItsValue(): void
+    {
+        $item = $this->itemOf($this->row('daap_pass', 'system', type: 'string', value: 'hunter2'), systemValue: 'hunter2');
+
+        $this->assertTrue($item->isSecret);
+        $this->assertSame('', $item->value);
+        $this->assertNull($item->systemValue);
+        $this->assertTrue($item->secretIsSet);
     }
 
     public function testAUserSubjectExcludesTheSystemCategory(): void
@@ -85,6 +116,19 @@ class PreferenceCollectorTest extends TestCase
         $this->assertFalse($collected['interface'][0]->editable);
     }
 
+    public function testItAttachesHelpWhenTheCatalogueHasSome(): void
+    {
+        $item = $this->itemOf($this->row('popular_threshold', 'interface', type: 'integer', value: '25'));
+
+        $this->assertNotNull($item->help);
+        $this->assertNotSame('', $item->help->text);
+    }
+
+    public function testItAttachesNoHelpWhenTheCatalogueHasNone(): void
+    {
+        $this->assertNull($this->itemOf($this->row('lastfm_challenge', 'plugins', type: 'string', value: ''))->help);
+    }
+
     public function testItAttachesTheSystemValueToEachItem(): void
     {
         $operator = $this->user(42);
@@ -99,6 +143,20 @@ class PreferenceCollectorTest extends TestCase
 
         $this->assertSame('1', $item->value);
         $this->assertSame('0', $item->systemValue);
+    }
+
+    public function testItCarriesTheRowThrough(): void
+    {
+        $row  = $this->row('popular_threshold', 'interface', type: 'integer', value: '25');
+        $item = $this->itemOf($row, systemValue: '10');
+
+        $this->assertSame('popular_threshold', $item->name);
+        $this->assertSame('Popular_threshold', $item->description);
+        $this->assertSame(25, $item->level);
+        $this->assertSame('25', $item->value);
+        $this->assertSame('10', $item->systemValue);
+        $this->assertTrue($item->editable);
+        $this->assertSame(PreferenceType::INTEGER, $item->type);
     }
 
     public function testItGroupsByCategoryAndKeepsTheRepositoryOrder(): void
@@ -116,6 +174,19 @@ class PreferenceCollectorTest extends TestCase
         $this->assertSame(['options', 'interface'], array_keys($collected));
         $this->assertSame('download', $collected['options'][0]->name);
         $this->assertSame('show_lyrics', $collected['interface'][0]->name);
+    }
+
+    public function testItLeavesTheShippedDefaultUnsetForAnUnknownPreference(): void
+    {
+        $item = $this->itemOf($this->row('some_plugin_option', 'plugins', type: 'string', value: 'x'));
+
+        $this->assertNull($item->shippedDefault);
+        $this->assertFalse($item->isAtShippedDefault());
+    }
+
+    public function testItReadsTheShippedDefaultFromTheDefaultsCatalogue(): void
+    {
+        $this->assertSame('10', $this->itemOf($this->row('popular_threshold', 'interface', type: 'integer', value: '25'))->shippedDefault);
     }
 
     public function testItResolvesChoiceListsForTheSubject(): void
@@ -159,11 +230,30 @@ class PreferenceCollectorTest extends TestCase
         $this->choiceProvider  = $this->createMock(PreferenceChoiceProviderInterface::class);
         $this->subject         = new PreferenceCollector(
             $this->userRepository,
-            new PreferenceItemFactory(new PreferenceHelpCatalog(), new PluginPreferenceHelp()),
+            new PreferenceHelpCatalog(),
+            new PluginPreferenceHelp(),
             $this->choiceProvider,
             new PreferencePrerequisiteCatalog(),
             $this->configContainer,
         );
+    }
+
+    /**
+     * The single item the collector builds from one row, with the server row it is compared against.
+     *
+     * @param array<string, mixed> $row
+     */
+    private function itemOf(array $row, ?string $systemValue = null): PreferenceItem
+    {
+        $operator = $this->user(42);
+        $this->configContainer->method('isFeatureEnabled')->willReturn(false);
+        $this->userRepository->method('getPreferenceRows')->willReturnCallback(
+            fn(int $userId): array => ($userId === User::INTERNAL_SYSTEM_USER_ID)
+                ? (($systemValue === null) ? [] : [['name' => $row['name'], 'value' => $systemValue] + $row])
+                : [$row]
+        );
+
+        return $this->subject->collect(PreferenceSubject::ownPreferences($operator), $operator)[$row['category']][0];
     }
 
     /** @return array<string, mixed> */
