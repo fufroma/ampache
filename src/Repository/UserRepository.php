@@ -266,16 +266,9 @@ final readonly class UserRepository implements UserRepositoryInterface
             }
 
             // check for api sessions
-            $sql = (AmpConfig::get('perpetual_api_session'))
-                ? "SELECT `username` FROM `session` WHERE `id` = ? AND (`expire` = 0 OR `expire` > ?) AND `type` = 'api'"
-                : "SELECT `username` FROM `session` WHERE `id` = ? AND `expire` > ? AND `type` = 'api'";
-            $userName = $this->connection->fetchOne($sql, [$apikey, time()]);
-
-            if ($userName !== false) {
-                $user = User::get_from_username((string) $userName);
-                if ($user instanceof User) {
-                    User::add_to_cache('user_apikey', $apikey, [$user->getId()]);
-                }
+            $user = $this->findByApiSessionToken($apikey);
+            if ($user instanceof User) {
+                User::add_to_cache('user_apikey', $apikey, [$user->getId()]);
 
                 return $user;
             }
@@ -298,6 +291,25 @@ final readonly class UserRepository implements UserRepositoryInterface
         }
 
         return null;
+    }
+
+    /**
+     * This returns a built user from an api session token, refusing any other session type
+     *
+     * `Session::exists()` answers for `api` and `stream` rows alike, so a play-only stream token would
+     * otherwise resolve to its owner here the way a real api session does.
+     */
+    public function findByApiSessionToken(string $token): ?User
+    {
+        $sql = (AmpConfig::get('perpetual_api_session'))
+            ? "SELECT `username` FROM `session` WHERE `id` = ? AND (`expire` = 0 OR `expire` > ?) AND `type` = 'api'"
+            : "SELECT `username` FROM `session` WHERE `id` = ? AND `expire` > ? AND `type` = 'api'";
+
+        $userName = $this->connection->fetchOne($sql, [$token, time()]);
+
+        return ($userName === false)
+            ? null
+            : User::get_from_username((string) $userName);
     }
 
     /**

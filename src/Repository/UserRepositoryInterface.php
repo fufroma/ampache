@@ -95,6 +95,11 @@ interface UserRepositoryInterface
     public function findByApiKey(string $apikey): ?User;
 
     /**
+     * This returns a built user from an api session token, refusing any other session type
+     */
+    public function findByApiSessionToken(string $token): ?User;
+
+    /**
      * This returns a built user from a email
      */
     public function findByEmail(string $email): ?User;
