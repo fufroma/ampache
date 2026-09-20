@@ -88,6 +88,16 @@ final class AudioStreamMethod implements JellyfinMethodInterface
             return JellyfinResponse::alreadySent();
         }
 
+        // a quota plugin caps what a user may consume, and Legalize mode refuses a media already playing
+        if (
+            !User::stream_control([['object_type' => 'song', 'object_id' => $song->id]], $user)
+            || (AmpConfig::get_bool('lock_songs') && !Stream::check_lock_media($song->id, 'song'))
+        ) {
+            http_response_code(403);
+
+            return JellyfinResponse::alreadySent();
+        }
+
         $query               = $request->getQueryParams();
         $rawContainer        = JellyfinRequestBody::field($query, 'Container');
         $rawAudioCodec       = JellyfinRequestBody::field($query, 'AudioCodec');
