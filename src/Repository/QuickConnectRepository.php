@@ -52,10 +52,6 @@ final class QuickConnectRepository implements QuickConnectRepositoryInterface
 
     public function countRecentByDeviceId(string $deviceId, int $since): int
     {
-        if ($deviceId === '') {
-            return 0;
-        }
-
         return (int) $this->connection->fetchOne(
             'SELECT COUNT(*) FROM `jellyfin_quick_connect` WHERE `device_id` = ? AND `date_added` >= ?',
             [$deviceId, $since],
@@ -122,12 +118,12 @@ final class QuickConnectRepository implements QuickConnectRepositoryInterface
         );
     }
 
-    public function markAuthorized(int $id, int $userId): void
+    public function markAuthorized(int $id, int $userId): bool
     {
-        // user_id is only ever set once: a row already bound to a user never matches this guard again
-        $this->connection->query(
+        // user_id is only ever set once, so the row count is what says whether this caller is the one who bound it
+        return $this->connection->query(
             'UPDATE `jellyfin_quick_connect` SET `authorized` = 1, `user_id` = ? WHERE `id` = ? AND `user_id` IS NULL',
             [$userId, $id],
-        );
+        )->rowCount() === 1;
     }
 }
