@@ -201,6 +201,14 @@ final readonly class UserRepository implements UserRepositoryInterface
     /**
      * Drops every session a user holds, logging them out everywhere
      */
+    /**
+     * Drops only the api sessions a user holds, leaving their interface session in place
+     */
+    public function deleteApiSessions(string $userName): void
+    {
+        $this->connection->query("DELETE FROM `session` WHERE `username` = ? AND `type` = 'api'", [$userName]);
+    }
+
     public function deleteSessions(string $userName): void
     {
         $this->connection->query('DELETE FROM `session` WHERE `username` = ?', [$userName]);
@@ -309,7 +317,7 @@ final readonly class UserRepository implements UserRepositoryInterface
 
         return ($userName === false)
             ? null
-            : User::get_from_username((string) $userName);
+            : $this->findByUsername((string) $userName);
     }
 
     /**

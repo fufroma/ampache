@@ -25,10 +25,10 @@ declare(strict_types=1);
 
 namespace Ampache\Module\Api\Jellyfin\Method\Song;
 
-use Ampache\Module\Api\Jellyfin\JellyfinCatalogAccess;
 use Ampache\Module\Api\Jellyfin\JellyfinId;
 use Ampache\Module\Api\Jellyfin\JellyfinResponse;
 use Ampache\Module\Api\Jellyfin\Method\JellyfinMethodInterface;
+use Ampache\Module\Catalog\Catalog;
 use Ampache\Repository\Model\Song;
 use Ampache\Repository\Model\User;
 use Psr\Http\Message\ServerRequestInterface;
@@ -52,7 +52,7 @@ final class LyricsMethod implements JellyfinMethodInterface
 
         $songId = JellyfinId::decodeId($itemId);
         $song   = ($songId !== null) ? new Song($songId) : null;
-        if ($song === null || $song->isNew() || !JellyfinCatalogAccess::allows($song, $user)) {
+        if ($song === null || $song->isNew() || !Catalog::has_access($song->getCatalogId(), $user->getId())) {
             return JellyfinResponse::notFound();
         }
 

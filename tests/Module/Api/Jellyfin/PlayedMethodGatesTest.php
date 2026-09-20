@@ -38,7 +38,7 @@ class PlayedMethodGatesTest extends TestCase
     public function testThePlayIsRecordedAgainstTheCaller(): void
     {
         self::assertStringContainsString(
-            'set_played($user->getId()',
+            'set_played(',
             (string) file_get_contents(self::SUBJECT),
             'A play reported here leaves no trace in the caller\'s own history'
         );

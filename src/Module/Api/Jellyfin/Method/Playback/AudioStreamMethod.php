@@ -26,7 +26,6 @@ declare(strict_types=1);
 namespace Ampache\Module\Api\Jellyfin\Method\Playback;
 
 use Ampache\Config\AmpConfig;
-use Ampache\Module\Api\Jellyfin\JellyfinCatalogAccess;
 use Ampache\Module\Api\Jellyfin\JellyfinId;
 use Ampache\Module\Api\Jellyfin\JellyfinRequestBody;
 use Ampache\Module\Api\Jellyfin\JellyfinResponse;
@@ -34,6 +33,7 @@ use Ampache\Module\Api\Jellyfin\JellyfinTranscodeDecision;
 use Ampache\Module\Api\Jellyfin\Method\JellyfinMethodInterface;
 use Ampache\Module\Authorization\AccessTypeEnum;
 use Ampache\Module\Authorization\Check\NetworkCheckerInterface;
+use Ampache\Module\Catalog\Catalog;
 use Ampache\Module\Playback\Stream;
 use Ampache\Repository\Model\Song;
 use Ampache\Repository\Model\User;
@@ -88,7 +88,7 @@ final class AudioStreamMethod implements JellyfinMethodInterface
             || !$song->enabled
             || $song->file === null
             || !is_readable($song->file)
-            || !JellyfinCatalogAccess::allows($song, $user)
+            || !Catalog::has_access($song->getCatalogId(), $user->getId())
         ) {
             http_response_code(404);
 

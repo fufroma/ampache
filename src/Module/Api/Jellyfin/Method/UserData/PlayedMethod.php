@@ -29,6 +29,7 @@ use Ampache\Module\Api\Jellyfin\JellyfinId;
 use Ampache\Module\Api\Jellyfin\JellyfinItemMapper;
 use Ampache\Module\Api\Jellyfin\JellyfinResponse;
 use Ampache\Module\Api\Jellyfin\Method\JellyfinMethodInterface;
+use Ampache\Module\Catalog\Catalog;
 use Ampache\Repository\Model\Song;
 use Ampache\Repository\Model\User;
 use Psr\Http\Message\ServerRequestInterface;
@@ -56,19 +57,16 @@ final class PlayedMethod implements JellyfinMethodInterface
 
         $songId = JellyfinId::decodeId($itemId);
         $song   = ($songId !== null) ? new Song($songId) : null;
-        if ($song === null || $song->isNew()) {
+        if ($song === null || $song->isNew() || !Catalog::has_access($song->getCatalogId(), $user->getId())) {
             return JellyfinResponse::notFound();
         }
 
-        if (strtoupper($request->getMethod()) === 'POST') {
-            // set_played writes the caller's own history and raises the shared flag only when it is still down
-            $song->set_played($user->getId(), 'Jellyfin', [], time());
+        // set_played writes the caller's own history and raises the shared flag only when it is still down
+        if (strtoupper($request->getMethod()) === 'POST' && $song->set_played($user->id, 'Jellyfin', [], time())) {
             $song->played = true;
         }
 
-        // Ampache keeps no per-user unplayed state, so a delete has nothing of the caller's to remove: clearing
-        // the shared column would rewrite what every other user sees, which the maintenance sweep itself refuses
-        // to do while any play remains.
+        // a delete writes nothing: the shared column is what every other user reads
 
         return JellyfinResponse::json($this->mapper->mapUserData('song', $song->id, $user, $song));
     }

@@ -120,10 +120,16 @@ final class QuickConnectRepository implements QuickConnectRepositoryInterface
 
     public function markAuthorized(int $id, int $userId): bool
     {
-        // user_id is only ever set once, so the row count is what says whether this caller is the one who bound it
-        return $this->connection->query(
+        // the guard is what stops a second caller taking a pairing someone else already bound
+        $bound = $this->connection->query(
             'UPDATE `jellyfin_quick_connect` SET `authorized` = 1, `user_id` = ? WHERE `id` = ? AND `user_id` IS NULL',
             [$userId, $id],
         )->rowCount() === 1;
+
+        // approving twice is the same approval, so the owner is told it worked rather than that their code is gone
+        return $bound || (int) $this->connection->fetchOne(
+            'SELECT `user_id` FROM `jellyfin_quick_connect` WHERE `id` = ?',
+            [$id]
+        ) === $userId;
     }
 }

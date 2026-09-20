@@ -35,14 +35,7 @@ use Ampache\Repository\Model\User;
  */
 final class JellyfinSessionMinter
 {
-    /**
-     * Jellyfin clients have no silent re-auth path (confirmed on Finamp), so a token that dies mid-use strands
-     * the user with no way back but re-pairing. This holds one well past any listening habit without becoming
-     * the decade-long credential no expiry sweep and no admin tool could ever reach.
-     *
-     * An install that turns `perpetual_api_session` on keeps its perpetual sessions untouched: those never
-     * expire either, but they stay revocable through the admin's own "Clear Perpetual API Sessions".
-     */
+    /** Jellyfin clients cannot re-auth silently, so a token outlives any listening habit but stays in the sweep's reach */
     private const int SESSION_TTL_SECONDS = 70 * 24 * 60 * 60;
 
     public function __construct(

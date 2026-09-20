@@ -49,9 +49,9 @@ The Jellyfin backend is off by default and is enabled from the admin preferences
 Jellyfin clients have no silent re-authentication path: once the API session behind a paired device expires,
 the client cannot obtain a new one by itself and the device has to be paired again from scratch.
 
-Set `perpetual_api_session = "true"` in your config file while the backend is enabled. Sessions then last
-until they are signed out or revoked, and an administrator can still clear all of them at once with
-*Clear Perpetual API Sessions* on the debug page.
+Enable *API sessions do not expire* (`perpetual_api_session`) in the admin preferences while the backend is
+enabled. Sessions then last until they are signed out or revoked, and an administrator can still clear all of
+them at once with *Clear Perpetual API Sessions* on the debug page.
 
 Left off, a Jellyfin session is given a long fixed lifetime instead (70 days) so ordinary use is not
 interrupted, but a device that goes unused past it will need pairing again.

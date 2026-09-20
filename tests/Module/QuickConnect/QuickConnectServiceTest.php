@@ -61,6 +61,20 @@ class QuickConnectServiceTest extends TestCase
     }
 
     /**
+     * The owner double-clicking their own approval is the same approval, not a stolen pairing.
+     */
+    public function testApprovingOwnPairingTwiceStillReportsSuccess(): void
+    {
+        $this->repository->method('findByCode')->willReturn(['id' => 7]);
+        $this->repository->method('incrementAuthorizeAttempts')->willReturn(1);
+        $this->repository->method('markAuthorized')->willReturn(true, true);
+
+        $subject = $this->subject();
+        self::assertTrue($subject->authorize('123456', $this->caller(), null)['success']);
+        self::assertTrue($subject->authorize('123456', $this->caller(), null)['success']);
+    }
+
+    /**
      * The window is counted per device, so accepting a caller that names none leaves it uncounted.
      */
     public function testInitiatingWithoutADeviceIdIsRefused(): void

@@ -49,9 +49,7 @@ final class ImageMethod implements JellyfinMethodInterface
     {
         // the spec wants this open, but an install that turned public_images off asked for the opposite
         if (!Art::isPublic() && $user === null) {
-            http_response_code(401);
-
-            return JellyfinResponse::alreadySent();
+            return JellyfinResponse::unauthorized();
         }
 
         $itemId = (string) ($request->getAttribute('itemId') ?? '');
