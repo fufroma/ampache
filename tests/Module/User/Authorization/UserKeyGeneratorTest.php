@@ -66,6 +66,10 @@ class UserKeyGeneratorTest extends MockeryTestCase
             ->once()
             ->andReturn($password);
 
+        $user->shouldReceive('revokeSessions')
+            ->withNoArgs()
+            ->once();
+
         $this->logger->shouldReceive('notice')
             ->with(
                 sprintf('Updating apikey for %d', $userId),
