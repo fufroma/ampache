@@ -34,8 +34,10 @@ use Ampache\Repository\Model\User;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**
- * POST/DELETE /UserPlayedItems/{itemId} (+ legacy /Users/{userId}/PlayedItems/{itemId}) — songs only, since
- * `Song::update_played()` is a global (not per-user) flag; there's no equivalent for album/artist/playlist.
+ * POST/DELETE /UserPlayedItems/{itemId} (+ legacy /Users/{userId}/PlayedItems/{itemId}) — songs only.
+ *
+ * A play is recorded against the caller, the way the rest of Ampache records one. `song`.`played` is a
+ * shared column rather than per-user state, so it is only ever set here, never cleared.
  */
 final class PlayedMethod implements JellyfinMethodInterface
 {
@@ -58,8 +60,15 @@ final class PlayedMethod implements JellyfinMethodInterface
             return JellyfinResponse::notFound();
         }
 
-        Song::update_played(strtoupper($request->getMethod()) === 'POST', $song->id);
-        $song->played = strtoupper($request->getMethod()) === 'POST';
+        if (strtoupper($request->getMethod()) === 'POST') {
+            // set_played writes the caller's own history and raises the shared flag only when it is still down
+            $song->set_played($user->getId(), 'Jellyfin', [], time());
+            $song->played = true;
+        }
+
+        // Ampache keeps no per-user unplayed state, so a delete has nothing of the caller's to remove: clearing
+        // the shared column would rewrite what every other user sees, which the maintenance sweep itself refuses
+        // to do while any play remains.
 
         return JellyfinResponse::json($this->mapper->mapUserData('song', $song->id, $user, $song));
     }
