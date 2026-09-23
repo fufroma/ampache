@@ -41,6 +41,33 @@ class OpenSubsonicAlbumArtistsTest extends MockeryTestCase
 {
     private const int ALBUM_ID = 4093;
 
+    /** One over the limit, so the list collapses */
+    private const int TOO_MANY = 11;
+
+    public function testAnAlbumAtTheLimitKeepsEveryName(): void
+    {
+        $subject     = $this->subject();
+        $song        = $this->mock(Song::class);
+        $song->album = 8888;
+        $song->shouldReceive('get_album_artists')->once()->andReturn(range(1, self::TOO_MANY - 1));
+
+        $this->assertCount(self::TOO_MANY - 1, $subject->songAlbumArtists($song), 'a real collaboration must keep its artists');
+    }
+
+    public function testAnAlbumCreditingTooManyArtistsBecomesVarious(): void
+    {
+        $subject     = $this->subject();
+        $song        = $this->mock(Song::class);
+        $song->album = 9999;
+        $song->shouldReceive('get_album_artists')->once()->andReturn(range(1, self::TOO_MANY));
+
+        $artists = $subject->songAlbumArtists($song);
+
+        $this->assertCount(1, $artists, 'a thousand names under every track is not a credit, it is a payload');
+        $this->assertSame('ar-0', $artists[0]['id']);
+        $this->assertSame(T_('Various'), $artists[0]['name']);
+    }
+
     public function testTheDisplayStringIsJoinedOncePerAlbum(): void
     {
         $subject = $this->subject();
@@ -86,7 +113,13 @@ class OpenSubsonicAlbumArtistsTest extends MockeryTestCase
         parent::setUp();
 
         // `Artist::get_name_array_by_id()` reads this cache first, which keeps the lookup off the database
-        foreach ([11 => 'Alpha', 22 => 'Beta'] as $artistId => $name) {
+        $names = [11 => 'Alpha', 22 => 'Beta'];
+        // the list tests walk ids 1..11, and `get_name_array_by_id()` would otherwise go to the database
+        foreach (range(1, self::TOO_MANY) as $artistId) {
+            $names[$artistId] ??= 'Artist ' . $artistId;
+        }
+
+        foreach ($names as $artistId => $name) {
             database_object::add_to_cache('artist_name_array', $artistId, [
                 'id' => (string) $artistId,
                 'name' => $name,

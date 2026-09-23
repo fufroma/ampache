@@ -56,6 +56,12 @@ use Ampache\Repository\Model\User;
  */
 final class OpenSubsonic_Fields
 {
+    /** Above this many album artists the list stops being readable and the album is credited as various */
+    private const int ALBUM_ARTIST_LIMIT = 10;
+
+    /** `Artist::get_name_array_by_id(0)` answers "Various", which is what Ampache already calls such an album */
+    private const int VARIOUS_ARTIST_ID = 0;
+
     /**
      * Per-request bookmark positions, keyed by user id and then song id. See $this->songBookmarkPosition().
      *
@@ -382,8 +388,18 @@ final class OpenSubsonic_Fields
     {
         $albumId = (int) $song->album;
         if (!array_key_exists($albumId, $this->albumArtists)) {
+            $artistIds = $song->get_album_artists();
+
+            // `album_map` collects the ALBUMARTIST tag of every song, so an album that gathers unrelated
+            // tracks -- an "Unknown" bucket, most of all -- credits as many album artists as it has tags.
+            // Past a list anyone could read, the album is a various-artists one and says so in one entry
+            // rather than repeating a thousand names under every single track.
+            if (count($artistIds) > self::ALBUM_ARTIST_LIMIT) {
+                $artistIds = [self::VARIOUS_ARTIST_ID];
+            }
+
             $artists = [];
-            foreach ($song->get_album_artists() as $artistId) {
+            foreach ($artistIds as $artistId) {
                 $artists[] = [
                     'id' => OpenSubsonic_Api::getArtistSubId($artistId),
                     'name' => (string) Artist::get_name_array_by_id($artistId)['name'],
